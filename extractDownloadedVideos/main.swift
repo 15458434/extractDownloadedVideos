@@ -15,8 +15,8 @@ func isDirectory(atPath path: String) -> Bool {
 }
 
 // Recursive function to list all files and folders at a given path, excluding specific folders
-// Copies .mp4 and .mkv files to the "result" directory
-func listFilesAndFoldersAndCopyVideos(at path: String, to destinationPath: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
+// Moves .mp4 and .mkv files to the "result" directory
+func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
     let fileManager = FileManager.default
     
     do {
@@ -33,16 +33,16 @@ func listFilesAndFoldersAndCopyVideos(at path: String, to destinationPath: Strin
             
             if isDirectory(atPath: item.path) {
                 // If the item is a directory, recursively list its contents
-                listFilesAndFoldersAndCopyVideos(at: item.path, to: destinationPath, excluding: excludedFolders, withIndentation: indentation + "  ")
+                listFilesAndFoldersAndMoveVideos(at: item.path, to: destinationPath, excluding: excludedFolders, withIndentation: indentation + "  ")
             } else {
-                // Check for .mp4 and .mkv files and copy them to the "result" directory
+                // Check for .mp4 and .mkv files and move them to the "result" directory
                 if item.pathExtension == "mp4" || item.pathExtension == "mkv" {
                     let destinationURL = URL(fileURLWithPath: destinationPath).appendingPathComponent(itemName)
                     do {
-                        try fileManager.copyItem(at: item, to: destinationURL)
-                        print("Copied \(itemName) to \(destinationPath)")
+                        try fileManager.moveItem(at: item, to: destinationURL)
+                        print("Moved \(itemName) to \(destinationPath)")
                     } catch {
-                        print("Could not copy \(itemName) to \(destinationPath): \(error)")
+                        print("Could not move \(itemName) to \(destinationPath): \(error)")
                     }
                 }
             }
@@ -76,4 +76,4 @@ if !fileManager.fileExists(atPath: resultFolderPath) {
     }
 }
 
-listFilesAndFoldersAndCopyVideos(at: path, to: resultFolderPath, excluding: excludedFolders)
+listFilesAndFoldersAndMoveVideos(at: path, to: resultFolderPath, excluding: excludedFolders)
