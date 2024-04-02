@@ -14,8 +14,38 @@ func isDirectory(atPath path: String) -> Bool {
     return isDir.boolValue
 }
 
+// Function to delete all files and folders at a path, excluding specific folders and the "result" folder
+func deleteRemainingFilesAndFolders(at path: String, excluding excludedFolders: Set<String>) {
+    let fileManager = FileManager.default
+    
+    do {
+        // Get the directory contents URLs (including subfolders).
+        let directoryContents = try fileManager.contentsOfDirectory(at: URL(fileURLWithPath: path), includingPropertiesForKeys: nil)
+        
+        for item in directoryContents {
+            let itemName = item.lastPathComponent
+            
+            // Skip excluded folders
+            if excludedFolders.contains(itemName) {
+                continue
+            }
+            
+            // Delete the item
+            do {
+                try fileManager.removeItem(at: item)
+                print("Deleted \(itemName)")
+            } catch {
+                print("Could not delete \(itemName): \(error)")
+            }
+        }
+    } catch {
+        print(error.localizedDescription)
+    }
+}
+
 // Recursive function to list all files and folders at a given path, excluding specific folders
 // Moves various types of video files to the "result" directory
+// Then deletes remaining files and folders except for excluded folders
 func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
     let fileManager = FileManager.default
     
@@ -37,6 +67,8 @@ func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: Strin
             if isDirectory(atPath: item.path) {
                 // If the item is a directory, recursively list its contents
                 listFilesAndFoldersAndMoveVideos(at: item.path, to: destinationPath, excluding: excludedFolders, withIndentation: indentation + "  ")
+                // After moving videos from this directory, attempt to delete it
+                deleteRemainingFilesAndFolders(at: item.path, excluding: excludedFolders)
             } else {
                 // Check if the file is one of the defined video types and move it to the "result" directory
                 if videoExtensions.contains(item.pathExtension.lowercased()) {
@@ -50,6 +82,8 @@ func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: Strin
                 }
             }
         }
+        // Attempt to delete any remaining files and folders in the current directory
+        deleteRemainingFilesAndFolders(at: path, excluding: excludedFolders.union(["result"]))
     } catch {
         print(error.localizedDescription)
     }
