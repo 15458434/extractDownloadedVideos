@@ -7,8 +7,6 @@
 
 import Foundation
 
-var videoFiles: [URL] = [] // Global array to store .mp4 and .mkv file URLs
-
 // Function to check if a path is a directory
 func isDirectory(atPath path: String) -> Bool {
     var isDir: ObjCBool = false
@@ -16,9 +14,9 @@ func isDirectory(atPath path: String) -> Bool {
     return isDir.boolValue
 }
 
-// Recursive function to list all files and folders at a given path and collect .mp4 and .mkv files
-// Excludes folders named "incomplete" and "result"
-func listFilesAndFolders(at path: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
+// Recursive function to list all files and folders at a given path, excluding specific folders
+// Copies .mp4 and .mkv files to the "result" directory
+func listFilesAndFoldersAndCopyVideos(at path: String, to destinationPath: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
     let fileManager = FileManager.default
     
     do {
@@ -33,14 +31,19 @@ func listFilesAndFolders(at path: String, excluding excludedFolders: Set<String>
                 continue
             }
             
-            print("\(indentation)\(itemName)")
             if isDirectory(atPath: item.path) {
                 // If the item is a directory, recursively list its contents
-                listFilesAndFolders(at: item.path, excluding: excludedFolders, withIndentation: indentation + "  ")
+                listFilesAndFoldersAndCopyVideos(at: item.path, to: destinationPath, excluding: excludedFolders, withIndentation: indentation + "  ")
             } else {
-                // Check for .mp4 and .mkv files and add them to the array
+                // Check for .mp4 and .mkv files and copy them to the "result" directory
                 if item.pathExtension == "mp4" || item.pathExtension == "mkv" {
-                    videoFiles.append(item)
+                    let destinationURL = URL(fileURLWithPath: destinationPath).appendingPathComponent(itemName)
+                    do {
+                        try fileManager.copyItem(at: item, to: destinationURL)
+                        print("Copied \(itemName) to \(destinationPath)")
+                    } catch {
+                        print("Could not copy \(itemName) to \(destinationPath): \(error)")
+                    }
                 }
             }
         }
@@ -60,12 +63,17 @@ if arguments.count > 1 {
 }
 
 let excludedFolders: Set<String> = ["incomplete", "result"] // Folders to exclude
+let resultFolderPath = "\(path)/result" // Path to the "result" folder
 
-print("Listing all files and subfolders in: \(path)\n")
-listFilesAndFolders(at: path, excluding: excludedFolders)
-
-// Print the collected .mp4 and .mkv file URLs
-print("\nCollected .mp4 and .mkv file URLs:")
-for file in videoFiles {
-    print(file.absoluteString)
+// Ensure the "result" folder exists
+let fileManager = FileManager.default
+if !fileManager.fileExists(atPath: resultFolderPath) {
+    do {
+        try fileManager.createDirectory(atPath: resultFolderPath, withIntermediateDirectories: true)
+    } catch {
+        print("Failed to create directory 'result': \(error)")
+        exit(1)
+    }
 }
+
+listFilesAndFoldersAndCopyVideos(at: path, to: resultFolderPath, excluding: excludedFolders)
