@@ -15,9 +15,12 @@ func isDirectory(atPath path: String) -> Bool {
 }
 
 // Recursive function to list all files and folders at a given path, excluding specific folders
-// Moves .mp4 and .mkv files to the "result" directory
+// Moves various types of video files to the "result" directory
 func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: String, excluding excludedFolders: Set<String>, withIndentation indentation: String = "") {
     let fileManager = FileManager.default
+    
+    // Define the set of video file extensions to move
+    let videoExtensions: Set<String> = ["mp4", "mkv", "avi", "mov", "wmv", "flv"]
     
     do {
         // Get the directory contents URLs (including subfolders).
@@ -35,8 +38,8 @@ func listFilesAndFoldersAndMoveVideos(at path: String, to destinationPath: Strin
                 // If the item is a directory, recursively list its contents
                 listFilesAndFoldersAndMoveVideos(at: item.path, to: destinationPath, excluding: excludedFolders, withIndentation: indentation + "  ")
             } else {
-                // Check for .mp4 and .mkv files and move them to the "result" directory
-                if item.pathExtension == "mp4" || item.pathExtension == "mkv" {
+                // Check if the file is one of the defined video types and move it to the "result" directory
+                if videoExtensions.contains(item.pathExtension.lowercased()) {
                     let destinationURL = URL(fileURLWithPath: destinationPath).appendingPathComponent(itemName)
                     do {
                         try fileManager.moveItem(at: item, to: destinationURL)
